@@ -1,9 +1,23 @@
+"""
+aviv drori, may 2021
+base from: https://karenapp.io/articles/how-to-automate-google-calendar-with-python-using-the-calendar-api/
+"""
+
 from datetime import datetime, time, date, timedelta
 from cal_setup import get_calendar_service
 import re
+# TODO  regex needed?
+
+
+CALENDAR_ID = 'c_gjgaqdjibjd14j93eannsmps3c@group.calendar.google.com'
+HOW_MANY_EVENTS = 20
 
 
 def new_get_time(dtm_string):
+    """
+    @:param: dtm_string: string representing datetime, from google calendar
+    @:return: dtm: datetime object of the input
+    """
     if len(dtm_string) == 10:   # like 2021-05-31
         # print("Full-day event.")
         return datetime(2020, 1, 1, 1, 1, 1)
@@ -17,30 +31,14 @@ def new_get_time(dtm_string):
     return dtm
 
 
-"""
-def add_time(element):
-    datetime_ = element['start'].get('dateTime')
-    time_pattern = re.compile("..:..:..")
-    added_time_pattern = re.compile("\+..:..")
-    full_time_pattern = re.compile("..:..:..\+..:..")
-
-    time = time_pattern.search(datetime_).group(0)
-    added_time = added_time_pattern.search(datetime_).group(0)
-
-    added_time_obj = datetime.strptime(added_time[1:], "%H:%M")
-    time_obj = datetime.strptime(time, "%H:%M:%S")
-    print(added_time_obj, " --- ", time_obj)
-"""
-
-
 def main():
     service = get_calendar_service()
     # Call the Calendar API
     now = datetime.utcnow().isoformat() + 'Z'  # 'Z' indicates UTC time  // datetime.datetime?
     print('Getting List of 10 events')
     events_result = service.events().list(
-        calendarId='c_gjgaqdjibjd14j93eannsmps3c@group.calendar.google.com', timeMin=now,
-        maxResults=20, singleEvents=True,
+        calendarId=CALENDAR_ID, timeMin=now,
+        maxResults=HOW_MANY_EVENTS, singleEvents=True,
         orderBy='startTime').execute()
     events = events_result.get('items', [])
 
