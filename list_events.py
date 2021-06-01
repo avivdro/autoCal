@@ -9,38 +9,18 @@ from datetime import datetime, time, date, timedelta
 import database
 from cal_setup import get_calendar_service
 
-
 CALENDAR_ID = 'c_gjgaqdjibjd14j93eannsmps3c@group.calendar.google.com'
-HOW_MANY_EVENTS = 60
-WEEK_DELTA = 1
-
-
-def dtm_str_to_obj(dtm_string):
-    """
-    :param dtm_string: string representing datetime, from google calendar
-    :return: dtm: datetime object of the input
-    """
-    if len(dtm_string) == 10:   # like 2021-05-31
-        # print("Full-day event.")
-        return datetime(2020, 1, 1, 1, 1, 1)  # arbitrary time
-    # time_ = time_string[11:19]
-    time_obj = time(int(dtm_string[11:13]), int(dtm_string[14:16], 0))
-    # print(time_obj)
-    date_obj = date(int(dtm_string[0:4]), int(dtm_string[5:7]),
-                    int(dtm_string[8:10]))
-    # print(date_obj)
-    dtm = datetime.combine(date_obj, time_obj)
-    # print(dtm)
-    return dtm
+HOW_MANY_EVENTS = 200
 
 
 def main():
-    service = get_calendar_service()
-    # Call the Calendar API
-    now = datetime.utcnow().isoformat() + 'Z'  # 'Z' indicates UTC time
+    service = get_calendar_service()  # Call the Calendar API
+    # getting the time of this morning, 6 A.M
+    this_morning = datetime.utcnow().replace(hour=6, minute=0, second=0).isoformat() + 'Z'
+    # now = datetime.utcnow().isoformat() + 'Z'  # 'Z' indicates UTC time
     print('Getting List of ', HOW_MANY_EVENTS, ' events:')
     events_result = service.events().list(
-        calendarId=CALENDAR_ID, timeMin=now,
+        calendarId=CALENDAR_ID, timeMin=this_morning,
         maxResults=HOW_MANY_EVENTS, singleEvents=True,
         orderBy='startTime').execute()
     events = events_result.get('items', [])
