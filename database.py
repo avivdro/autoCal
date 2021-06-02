@@ -10,7 +10,8 @@ from datetime import datetime, time, date
 
 # EXCEL FILE CONSTANTS:
 DATABASE_FILE = 'database.xlsx'  # this file needs to be in same dir
-SHEET1_NAME = 'Sheet1'           # this sheet needs to be in the file
+
+# WEEKS:
 WEEK_23_NAME = 'week23'
 WEEK_24_NAME = 'week24'
 WEEK_25_NAME = 'week25'
@@ -21,7 +22,11 @@ WEEK_3_NAME = 'week3'
 # add more as i go...
 
 # SHEET1:
+SHEET1_NAME = 'Sheet1'
 COL_A = 'A'
+# WRITE HISTORY:
+SHEET_HISTORY_NAME = 'WriteHistory'
+LAST_WRITE_CELL = 'G3'
 
 # COL_DAYS
 COL_FROM_DICT = {1: 'A', 2: 'E', 3: 'I', 4: 'M', 5: 'Q', 6: 'U', 7: 'Y'}
@@ -34,6 +39,7 @@ ROW_EVENTS_END = 13
 # EXCEL SHEET STARTUP
 DB = load_workbook(DATABASE_FILE)
 SHEET1 = DB[SHEET1_NAME]
+SHEET_HISTORY = DB[SHEET_HISTORY_NAME]
 SHEET_DICT = {23: DB[WEEK_23_NAME], 24: DB[WEEK_24_NAME], 25: DB[WEEK_25_NAME],
               26: DB[WEEK_26_NAME], 1: DB[WEEK_1_NAME], 2: DB[WEEK_2_NAME],
               3: DB[WEEK_3_NAME]}
@@ -97,7 +103,7 @@ def choose_week(dtm_event):
     if dtm_event == datetime(2020, 1, 1, 1, 1, 1):   # this is the arbitrary datetime for whole day events
         return 0
     week_num = dtm_event.isocalendar()[1] + 1
-    # TODO check this around week 26, 1...
+    # TODO check this around week 26, 1... need to make something smaller?
     if choose_day(dtm_event) == 1:
         week_num += 1  # small error fix for sundays
     if week_num > 26:
@@ -140,7 +146,6 @@ def write_event(event, i):
     sheet[COL_NAME_DICT[day] + i_] = str(event['summary'])
     # write length:
     sheet[COL_LEN_DICT[day] + i_] = elapsed_time
-    # increment i
     print("  Writing to sheet %s, wk:%d, day:%d, hr:%s, len:%d"
           % (sheet, week_num, day, str(dtm_start.time())[0:5], elapsed_time))
 
@@ -158,6 +163,19 @@ def event_to_datetime(event):
     return dtm_start, dtm_end
 
 
+def log(how_many_events):
+    """
+    logs to the WriteHistory sheet
+    :return: None
+    """
+    row = int(SHEET_HISTORY[LAST_WRITE_CELL].value)
+    row += 1
+    row_ = str(row)
+    SHEET_HISTORY["A" + row_] = str(datetime.now())
+    SHEET_HISTORY["B" + row_] = how_many_events
+    SHEET_HISTORY[LAST_WRITE_CELL] = row
+
+
 def write_events_to_db(events):
     """
     writes the event to the excel database
@@ -170,8 +188,6 @@ def write_events_to_db(events):
         print("Received event: ", event['summary'])
         if should_write(event):
             dtm_start, dtm_end = event_to_datetime(event)
-            elapsed_time = (dtm_end - dtm_start).seconds / 3600  # hours
-            correct_sheet = choose_sheet(dtm_start)
             day = choose_day(dtm_start)
             if day != prev_day:
                 i = ROW_EVENTS_START
@@ -182,7 +198,7 @@ def write_events_to_db(events):
                 write_event(event, i)
                 # write_event(correct_sheet, i, day, dtm_start, dtm_end, str(event['summary']), elapsed_time)
                 i += 1
-
+    log(len(events))
     save()
 
 

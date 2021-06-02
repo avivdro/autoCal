@@ -10,7 +10,7 @@ import database
 from cal_setup import get_calendar_service
 
 CALENDAR_ID = 'c_gjgaqdjibjd14j93eannsmps3c@group.calendar.google.com'
-HOW_MANY_EVENTS = 117
+HOW_MANY_EVENTS = 50
 
 
 def get_events(how_many=HOW_MANY_EVENTS):
@@ -18,7 +18,7 @@ def get_events(how_many=HOW_MANY_EVENTS):
     # getting the time of this morning, 6 A.M
     this_morning = datetime.utcnow().replace(hour=6, minute=0, second=0).isoformat() + 'Z'
     # now = datetime.utcnow().isoformat() + 'Z'  # 'Z' indicates UTC time
-    print('Getting List of ', HOW_MANY_EVENTS, ' events:')
+    print('Getting List of ', how_many, ' events:')
     events_result = service.events().list(
         calendarId=CALENDAR_ID, timeMin=this_morning,
         maxResults=how_many, singleEvents=True,
