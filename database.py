@@ -37,18 +37,30 @@ SHEET1 = DB[SHEET1_NAME]
 SHEET_DICT = {23: DB[WEEK_23_NAME], 24: DB[WEEK_24_NAME], 25: DB[WEEK_25_NAME],
               26: DB[WEEK_26_NAME], 1: DB[WEEK_1_NAME], 2: DB[WEEK_2_NAME],
               3: DB[WEEK_3_NAME]}
-
 # TODO init the other sheets
+# FILTER
+BAD_STRINGS = ["ללא לימודים", "יום הולדת"]
 
 
-def should_write(event_summary):
+def should_write(event_obj):
     """
-    checks if event contains a forbidden substring like "without studies"
-    :param event_summary: string of the name of the event
+    checks if event contains a forbidden substring like "without studies",
+     or whole day/zero time
+    :param event_obj: event object
     :return: BOOL - True if event should be written, False otherwise
     """
+    start = event_obj['start'].get('dateTime', event_obj['start'].get('date'))
+    dtm_start = dtm_str_to_obj(start)
+    correct_sheet = choose_sheet(dtm_start)
+    if correct_sheet == 0:
+        print("    Event not written: Filtered: whole day event")
+        return False
+    event_summary = event_obj['summary']
+    for bad_word in BAD_STRINGS:
+        if bad_word in event_summary:
+            print("    Event not written: Filtered: contains string ", bad_word)
+            return False
     return True
-    # todo write the function...
 
 
 def dtm_str_to_obj(dtm_string):
@@ -71,10 +83,16 @@ def dtm_str_to_obj(dtm_string):
 
 
 def choose_sheet(dtm_event):
+    week_num = choose_week(dtm_event)
+    if week_num == 0:
+        return 0
+    return SHEET_DICT[choose_week(dtm_event)]
+
+
+def choose_week(dtm_event):
     """
-    returns the sheet corresponding to the week of the event
-    :param dtm_event: datetime obj of the event
-    :return: execl sheet - if event shouldn't be written, return 0
+    :param dtm_event:
+    :return:
     """
     if dtm_event == datetime(2020, 1, 1, 1, 1, 1):   # this is the arbitrary datetime for whole day events
         return 0
@@ -86,8 +104,7 @@ def choose_sheet(dtm_event):
         week_num -= 26
     if week_num == 0:
         week_num = 1
-    print("DEBUG-  ", dtm_event, " is week ", week_num)
-    return SHEET_DICT[week_num]
+    return week_num
 
 
 def choose_day(dtm_event):
@@ -103,32 +120,42 @@ def choose_day(dtm_event):
     return day
 
 
-def write_event(sheet, i, day, dtm_start, dtm_end, name, elapsed_time):
+def write_event(event, i):
     """
-    writes everything to the given sheet and to the SHEET1 - overlook
-    :param sheet: Excel sheet to write to
-    :param i: int - row
-    :param day: int - 1=sunday, 2=monday..
-    :param dtm_start: datetime of event start
-    :param dtm_end: datetime of event end
-    :param name: name of the event
-    :param elapsed_time: elapsed time of event
-    :return: none
+    :param event: event obj to write to the file
+    :param i: integer - the row to write to
+    :return:
     """
+    dtm_start, dtm_end = event_to_datetime(event)
+    elapsed_time = (dtm_end - dtm_start).seconds / 3600  # hours
+    sheet = choose_sheet(dtm_start)
+    day = choose_day(dtm_start)
     i_ = str(i)
+    week_num = choose_week(dtm_start)
     # write from:
-    SHEET1['A' + i_] = str(dtm_start.time())[0:5]
     sheet[COL_FROM_DICT[day] + i_] = str(dtm_start.time())[0:5]
     # write to:
-    SHEET1['B' + i_] = str(dtm_end.time())[0:5]
     sheet[COL_TO_DICT[day] + i_] = str(dtm_end.time())[0:5]
     # write name:
-    SHEET1['C' + i_] = name
-    sheet[COL_NAME_DICT[day] + i_] = name
+    sheet[COL_NAME_DICT[day] + i_] = str(event['summary'])
     # write length:
-    SHEET1['D' + i_] = str(elapsed_time)[0:4]  # time up to 9:59
-    sheet[COL_LEN_DICT[day] + i_] = str(elapsed_time)[0:4]
+    sheet[COL_LEN_DICT[day] + i_] = elapsed_time
     # increment i
+    print("  Writing to sheet %s, wk:%d, day:%d, hr:%s, len:%d"
+          % (sheet, week_num, day, str(dtm_start.time())[0:5], elapsed_time))
+
+
+def event_to_datetime(event):
+    """
+    Parses the info, just for cleaner code. JSON style.
+    :param event: event object
+    :return: datetime of start, datetime of end
+    """
+    start = event['start'].get('dateTime', event['start'].get('date'))
+    end = event['end'].get('dateTime', event['end'].get('date'))
+    dtm_start = dtm_str_to_obj(start)
+    dtm_end = dtm_str_to_obj(end)
+    return dtm_start, dtm_end
 
 
 def write_events_to_db(events):
@@ -140,16 +167,11 @@ def write_events_to_db(events):
     i = ROW_EVENTS_START
     prev_day = 0
     for event in events:
-        start = event['start'].get('dateTime', event['start'].get('date'))
-        end = event['end'].get('dateTime', event['end'].get('date'))
-        print("Received event: ", event['summary'], end="")
-        dtm_start = dtm_str_to_obj(start)
-        dtm_end = dtm_str_to_obj(end)
-        elapsed_time = dtm_end - dtm_start
-        correct_sheet = choose_sheet(dtm_start)
-
-        if correct_sheet != 0:
-            print(" to sheet ", correct_sheet)
+        print("Received event: ", event['summary'])
+        if should_write(event):
+            dtm_start, dtm_end = event_to_datetime(event)
+            elapsed_time = (dtm_end - dtm_start).seconds / 3600  # hours
+            correct_sheet = choose_sheet(dtm_start)
             day = choose_day(dtm_start)
             if day != prev_day:
                 i = ROW_EVENTS_START
@@ -157,10 +179,9 @@ def write_events_to_db(events):
             if i == ROW_EVENTS_END:
                 print("ERROR: Overflow: Too many events to write.")
             else:
-                write_event(correct_sheet, i, day, dtm_start, dtm_end, str(event['summary']), elapsed_time)
+                write_event(event, i)
+                # write_event(correct_sheet, i, day, dtm_start, dtm_end, str(event['summary']), elapsed_time)
                 i += 1
-        else:
-            print(" - Event not written.")
 
     save()
 
@@ -172,9 +193,6 @@ def save():
 
 def tests():
     # tests:
-    print(SHEET1[COL_A + str(1)].value)   # output should be test
-    print(SHEET1['A2'].value)       # output should be 2
-    SHEET1[COL_A + str(5)] = "write test22222"
     save()
 
 
