@@ -17,6 +17,7 @@ WEEK_25_NAME = 'week25'
 WEEK_26_NAME = 'week26'
 WEEK_1_NAME = 'week1'
 WEEK_2_NAME = 'week2'
+WEEK_3_NAME = 'week3'
 # add more as i go...
 
 # SHEET1:
@@ -34,7 +35,8 @@ ROW_EVENTS_END = 13
 DB = load_workbook(DATABASE_FILE)
 SHEET1 = DB[SHEET1_NAME]
 SHEET_DICT = {23: DB[WEEK_23_NAME], 24: DB[WEEK_24_NAME], 25: DB[WEEK_25_NAME],
-              26: DB[WEEK_26_NAME], 1: DB[WEEK_1_NAME], 2: DB[WEEK_2_NAME]}
+              26: DB[WEEK_26_NAME], 1: DB[WEEK_1_NAME], 2: DB[WEEK_2_NAME],
+              3: DB[WEEK_3_NAME]}
 
 # TODO init the other sheets
 
@@ -80,10 +82,11 @@ def choose_sheet(dtm_event):
     # TODO check this around week 26, 1...
     if choose_day(dtm_event) == 1:
         week_num += 1  # small error fix for sundays
-    week_num = week_num % 27
+    if week_num > 26:
+        week_num -= 26
     if week_num == 0:
         week_num = 1
-    # print("DEBUG ", week_num)
+    print("DEBUG-  ", dtm_event, " is week ", week_num)
     return SHEET_DICT[week_num]
 
 
