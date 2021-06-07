@@ -6,7 +6,7 @@ calls for get_events and then writes to database
 import list_events
 import database
 
-HOW_MANY_EVENTS = 100
+HOW_MANY_EVENTS = 110
 
 
 def main():

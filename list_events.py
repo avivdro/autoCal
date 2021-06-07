@@ -4,9 +4,8 @@ base from: https://karenapp.io/articles/
 how-to-automate-google-calendar-with-python-using-the-calendar-api/
 """
 
-from datetime import datetime, time, date, timedelta
+from datetime import datetime
 
-import database
 from cal_setup import get_calendar_service
 
 CALENDAR_ID = 'c_gjgaqdjibjd14j93eannsmps3c@group.calendar.google.com'

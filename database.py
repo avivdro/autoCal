@@ -4,7 +4,6 @@ may 2021
 This file uses opnenpyxl to read and write to the excel
 """
 
-import openpyxl
 from openpyxl import load_workbook
 from datetime import datetime, time, date
 
@@ -12,18 +11,15 @@ from datetime import datetime, time, date
 DATABASE_FILE = 'database.xlsx'  # this file needs to be in same dir
 
 # WEEKS:
-WEEK_23_NAME = 'week23'
 WEEK_24_NAME = 'week24'
 WEEK_25_NAME = 'week25'
 WEEK_26_NAME = 'week26'
 WEEK_1_NAME = 'week1'
 WEEK_2_NAME = 'week2'
 WEEK_3_NAME = 'week3'
+WEEK_4_NAME = 'week4'
 # add more as i go...
 
-# SHEET1:
-SHEET1_NAME = 'Sheet1'
-COL_A = 'A'
 # WRITE HISTORY:
 SHEET_HISTORY_NAME = 'WriteHistory'
 LAST_WRITE_CELL = 'G3'
@@ -34,18 +30,21 @@ COL_TO_DICT = {1: 'B', 2: 'F', 3: 'J', 4: 'N', 5: 'R', 6: 'V', 7: 'Z'}
 COL_NAME_DICT = {1: 'C', 2: 'G', 3: 'K', 4: 'O', 5: 'S', 6: 'W', 7: 'AA'}
 COL_LEN_DICT = {1: 'D', 2: 'H', 3: 'L', 4: 'P', 5: 'T', 6: 'X', 7: 'AB'}
 # ROWS
-ROW_EVENTS_START = 3
-ROW_EVENTS_END = 13
+ROW_EVENTS_START = 7
+ROW_EVENTS_END = 15
 # EXCEL SHEET STARTUP
 DB = load_workbook(DATABASE_FILE)
-SHEET1 = DB[SHEET1_NAME]
 SHEET_HISTORY = DB[SHEET_HISTORY_NAME]
-SHEET_DICT = {23: DB[WEEK_23_NAME], 24: DB[WEEK_24_NAME], 25: DB[WEEK_25_NAME],
-              26: DB[WEEK_26_NAME], 1: DB[WEEK_1_NAME], 2: DB[WEEK_2_NAME],
-              3: DB[WEEK_3_NAME]}
+
+SHEET_DICT = {24: DB[WEEK_24_NAME], 25: DB[WEEK_25_NAME], 26: DB[WEEK_26_NAME],
+              1: DB[WEEK_1_NAME], 2: DB[WEEK_2_NAME], 3: DB[WEEK_3_NAME],
+              4: DB[WEEK_4_NAME]}
 # TODO init the other sheets
 # FILTER
 BAD_STRINGS = ["ללא לימודים", "יום הולדת"]
+FILTERED_SHEET_NAME = 'filtered'
+SHEET_FILTERED = DB[FILTERED_SHEET_NAME]
+FILTER_LAST_ROW = 'H2'
 
 
 def should_write(event_obj):
@@ -60,13 +59,34 @@ def should_write(event_obj):
     correct_sheet = choose_sheet(dtm_start)
     if correct_sheet == 0:
         print("    Event not written: Filtered: whole day event")
+        write_to_filtered_list(event_obj, "whole day event")
         return False
     event_summary = event_obj['summary']
     for bad_word in BAD_STRINGS:
         if bad_word in event_summary:
             print("    Event not written: Filtered: contains string ", bad_word)
+            write_to_filtered_list(event_obj, "contains string" + bad_word)
             return False
     return True
+
+
+def write_to_filtered_list(event_obj, why):
+    """
+    writes the filtered events to the 'filtered' worksheet
+    :param event_obj: the object that was filtered
+    :param why: string representing reason event was filtered
+    :return: None
+    """
+    row = int(SHEET_FILTERED[FILTER_LAST_ROW].value)
+    row += 1
+    row_ = str(row)
+    dtm_start, dtm_end = event_to_datetime(event_obj)
+    SHEET_FILTERED["A" + row_] = event_obj['summary']
+    SHEET_FILTERED["B" + row_] = choose_week(dtm_start)
+    SHEET_FILTERED["C" + row_] = str(dtm_start.date())
+    SHEET_FILTERED["D" + row_] = str(dtm_start.time())[0:5]
+    SHEET_FILTERED["E" + row_] = why
+    SHEET_FILTERED[FILTER_LAST_ROW] = row
 
 
 def dtm_str_to_obj(dtm_string):
@@ -97,8 +117,8 @@ def choose_sheet(dtm_event):
 
 def choose_week(dtm_event):
     """
-    :param dtm_event:
-    :return:
+    :param dtm_event: datetime object of event
+    :return: int representing air force week of the date
     """
     if dtm_event == datetime(2020, 1, 1, 1, 1, 1):   # this is the arbitrary datetime for whole day events
         return 0
@@ -174,6 +194,7 @@ def log(how_many_events):
     SHEET_HISTORY["A" + row_] = str(datetime.now())
     SHEET_HISTORY["B" + row_] = how_many_events
     SHEET_HISTORY[LAST_WRITE_CELL] = row
+    SHEET_FILTERED[FILTER_LAST_ROW] = 1  # ready for next time
 
 
 def write_events_to_db(events):
@@ -196,7 +217,6 @@ def write_events_to_db(events):
                 print("ERROR: Overflow: Too many events to write.")
             else:
                 write_event(event, i)
-                # write_event(correct_sheet, i, day, dtm_start, dtm_end, str(event['summary']), elapsed_time)
                 i += 1
     log(len(events))
     save()
