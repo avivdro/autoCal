@@ -154,6 +154,7 @@ def write_event(event, i):
     """
     dtm_start, dtm_end = event_to_datetime(event)
     elapsed_time = (dtm_end - dtm_start).seconds / 3600  # hours
+    # todo try and catch for nonexistent sheet
     sheet = choose_sheet(dtm_start)
     day = choose_day(dtm_start)
     i_ = str(i)
@@ -195,14 +196,16 @@ def log(how_many_events):
     SHEET_HISTORY["B" + row_] = how_many_events
     SHEET_HISTORY[LAST_WRITE_CELL] = row
     SHEET_FILTERED[FILTER_LAST_ROW] = 1  # ready for next time
+    print("Successfully logged to history.")
 
 
 def write_events_to_db(events):
     """
-    writes the event to the excel database
-    :param events: list of event string as received from google calendar
+    receives list of event and manages the filtering and writing.
+    :param events: list of events as received from google calendar
     :return: n/a
     """
+    events_written = 0
     i = ROW_EVENTS_START
     prev_day = 0
     for event in events:
@@ -215,15 +218,20 @@ def write_events_to_db(events):
                 prev_day = day
             if i == ROW_EVENTS_END:
                 print("ERROR: Overflow: Too many events to write.")
+                write_to_filtered_list(event, "OVERFLOW")
             else:
                 write_event(event, i)
                 i += 1
+                events_written += 1
     log(len(events))
     save()
+    print("--------------------------------------------------------------")
+    print("Finished.\nGot ", len(events), " events, wrote ", events_written, " of them.")
 
 
 def save():
     DB.save(DATABASE_FILE)
+    print("Excel database saved.")
     return
 
 
