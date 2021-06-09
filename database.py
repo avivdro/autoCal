@@ -8,7 +8,7 @@ from openpyxl import load_workbook
 from datetime import datetime, time, date
 
 # EXCEL FILE CONSTANTS:
-DATABASE_FILE = 'database.xlsx'  # this file needs to be in same dir
+database_file = 'database.xlsx'  # this file needs to be in same dir
 
 # WEEKS:
 WEEK_24_NAME = 'week24'
@@ -33,7 +33,7 @@ COL_LEN_DICT = {1: 'D', 2: 'H', 3: 'L', 4: 'P', 5: 'T', 6: 'X', 7: 'AB'}
 ROW_EVENTS_START = 7
 ROW_EVENTS_END = 15
 # EXCEL SHEET STARTUP
-DB = load_workbook(DATABASE_FILE)
+DB = load_workbook(database_file)
 SHEET_HISTORY = DB[SHEET_HISTORY_NAME]
 
 SHEET_DICT = {24: DB[WEEK_24_NAME], 25: DB[WEEK_25_NAME], 26: DB[WEEK_26_NAME],
@@ -41,10 +41,15 @@ SHEET_DICT = {24: DB[WEEK_24_NAME], 25: DB[WEEK_25_NAME], 26: DB[WEEK_26_NAME],
               4: DB[WEEK_4_NAME]}
 # TODO init the other sheets
 # FILTER
-BAD_STRINGS = ["ללא לימודים", "יום הולדת"]
+bad_words = ["ללא לימודים", "יום הולדת"]  # default
 FILTERED_SHEET_NAME = 'filtered'
 SHEET_FILTERED = DB[FILTERED_SHEET_NAME]
 FILTER_LAST_ROW = 'H2'
+
+
+def set_bad_words(new_bad_words):
+    global bad_words
+    bad_words = new_bad_words  # on purpose rewrites the list
 
 
 def should_write(event_obj):
@@ -62,9 +67,10 @@ def should_write(event_obj):
         write_to_filtered_list(event_obj, "whole day event")
         return False
     event_summary = event_obj['summary']
-    for bad_word in BAD_STRINGS:
+    for bad_word in bad_words:
         if bad_word in event_summary:
-            print("    Event not written: Filtered: contains string ", bad_word)
+            print("    Event not written: Filtered: contains string ",
+                  bad_word)
             write_to_filtered_list(event_obj, "contains string" + bad_word)
             return False
     return True
@@ -112,7 +118,9 @@ def choose_sheet(dtm_event):
     week_num = choose_week(dtm_event)
     if week_num == 0:
         return 0
-    return SHEET_DICT[choose_week(dtm_event)]
+    if week_num not in SHEET_DICT:
+        return 0
+    return SHEET_DICT[week_num]
 
 
 def choose_week(dtm_event):
@@ -120,10 +128,10 @@ def choose_week(dtm_event):
     :param dtm_event: datetime object of event
     :return: int representing air force week of the date
     """
-    if dtm_event == datetime(2020, 1, 1, 1, 1, 1):   # this is the arbitrary datetime for whole day events
+    if dtm_event == datetime(2020, 1, 1, 1, 1, 1):
+        # this is the arbitrary datetime for whole day events
         return 0
     week_num = dtm_event.isocalendar()[1] + 1
-    # TODO check this around week 26, 1... need to make something smaller?
     if choose_day(dtm_event) == 1:
         week_num += 1  # small error fix for sundays
     if week_num > 26:
@@ -154,8 +162,11 @@ def write_event(event, i):
     """
     dtm_start, dtm_end = event_to_datetime(event)
     elapsed_time = (dtm_end - dtm_start).seconds / 3600  # hours
-    # todo try and catch for nonexistent sheet
     sheet = choose_sheet(dtm_start)
+    if sheet == 0:
+        write_to_filtered_list(event, "No matching sheet for this week")
+        return
+
     day = choose_day(dtm_start)
     i_ = str(i)
     week_num = choose_week(dtm_start)
@@ -199,12 +210,15 @@ def log(how_many_events):
     print("Successfully logged to history.")
 
 
-def write_events_to_db(events):
+def write_events_to_db(database_file_name, events):
     """
     receives list of event and manages the filtering and writing.
+    :param database_file_name: name of database file
     :param events: list of events as received from google calendar
     :return: n/a
     """
+    global database_file
+    database_file = database_file_name
     events_written = 0
     i = ROW_EVENTS_START
     prev_day = 0
@@ -223,16 +237,23 @@ def write_events_to_db(events):
                 write_event(event, i)
                 i += 1
                 events_written += 1
+    print("Done receiving all events.")
+    print("--------------------------------------------------------------")
     log(len(events))
     save()
-    print("--------------------------------------------------------------")
-    print("Finished.\nGot ", len(events), " events, wrote ", events_written, " of them.")
+    print("Finished.\nGot ", len(events),
+          " events, wrote ", events_written, " of them.")
 
 
 def save():
-    DB.save(DATABASE_FILE)
-    print("Excel database saved.")
-    return
+    try:
+        DB.save(database_file)
+        print("Excel database saved.")
+    except PermissionError:
+        input("ERROR! Make sure excel database is closed, then press enter.")
+        save()
+    finally:
+        return
 
 
 def tests():
