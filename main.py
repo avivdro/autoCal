@@ -4,53 +4,46 @@ main code
 calls for get_events and then writes to database
 """
 
-# TODO - setup file for: database file name
-# TODO - setup file for: list_events.CALENDAR_ID
-# TODO - setup file for: database.BAD_STRINGS
-# TODO - icon :)
-# TODO - better gui instead of console.
-# TODO - user manual for KATA
+# TODO - better gui instead of console?
+# TODO - edit config from program
+# TODO - gui with actions - settings, update, clear, info...
+# TODO - recognize tests and projs, and change color to yellow
+# TODO - recognize weekend stay in base/ go home
+"""
+UPDATE: run the main program
+SETTINGS: edit filter and which calendar id to write to
+CLEAR: clear all the luz
+INFO: user manual / dev info
+"""
 
 import list_events
 import database
+import config
+import googleapiclient
 
 HOW_MANY_EVENTS = 120
-PATH_TO_SETUP_FILE = 'setup/SETUP.txt'
-PATH_TO_FILTER = 'setup/Filter.txt'
 
 
-def read_setup_files():
-    """
-    read the SETUP folder - SETUP.txt, Filter.txt
-    :return: (database file name, calendar id)
-    """
+def main_program():
     try:
-        d = {}
-        with open(PATH_TO_SETUP_FILE, encoding='utf-8') as f:
-            for line in f:
-                (key, val) = line.split()
-                d[key] = val
-        bad_words = []
-        with open(PATH_TO_FILTER, encoding='utf-8') as f:
-            for line in f:
-                bad_words.append(line[:-1])
-        return d['database_file:'], d['calendar_id:'], bad_words
-    except FileNotFoundError:
-        print("One of the SETUP files is missing, read the manual for info")
-        exit()
+        update_database()
+    except googleapiclient.errors.HttpError:
+        print("ERROR! The calendar ID is unrecognized.")
+        config.my_exit()
 
 
-def main():
-    database_file_name, calendar_id, bad_words = read_setup_files()
-    database.set_bad_words(bad_words)
+def update_database():
+    database_file_name, calendar_id, bad_words = config.read_setup_files()
+    database.setup_settings(database_file_name, bad_words)
+
     events = list_events.get_events(calendar_id, HOW_MANY_EVENTS)
-    database.write_events_to_db(database_file_name, events)
+    database.write_events_to_db(events)
     input("Press enter to exit.")  # enter then close program.
 
 
 def tests():
-    print(read_setup_files())
+    print(config.read_setup_files())
 
 
 if __name__ == '__main__':
-    main()
+    main_program()

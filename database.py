@@ -6,19 +6,10 @@ This file uses opnenpyxl to read and write to the excel
 
 from openpyxl import load_workbook
 from datetime import datetime, time, date
+import config
 
 # EXCEL FILE CONSTANTS:
-database_file = 'database.xlsx'  # this file needs to be in same dir
-
-# WEEKS:
-WEEK_24_NAME = 'week24'
-WEEK_25_NAME = 'week25'
-WEEK_26_NAME = 'week26'
-WEEK_1_NAME = 'week1'
-WEEK_2_NAME = 'week2'
-WEEK_3_NAME = 'week3'
-WEEK_4_NAME = 'week4'
-# add more as i go...
+database_file = config.get_database_file_name()  # this file needs to be in same dir
 
 # WRITE HISTORY:
 SHEET_HISTORY_NAME = 'WriteHistory'
@@ -32,14 +23,24 @@ COL_LEN_DICT = {1: 'D', 2: 'H', 3: 'L', 4: 'P', 5: 'T', 6: 'X', 7: 'AB'}
 # ROWS
 ROW_EVENTS_START = 7
 ROW_EVENTS_END = 15
+# CLEAR RANGE
+CLEAR_RANGE = 'A' + str(ROW_EVENTS_START) + ':AB' + str(ROW_EVENTS_END)
 # EXCEL SHEET STARTUP
-DB = load_workbook(database_file)
+DB = load_workbook(config.get_database_file_name())
 SHEET_HISTORY = DB[SHEET_HISTORY_NAME]
 
-SHEET_DICT = {24: DB[WEEK_24_NAME], 25: DB[WEEK_25_NAME], 26: DB[WEEK_26_NAME],
-              1: DB[WEEK_1_NAME], 2: DB[WEEK_2_NAME], 3: DB[WEEK_3_NAME],
-              4: DB[WEEK_4_NAME]}
-# TODO init the other sheets
+SHEET_DICT = {1: DB['week1'], 2: DB['week2'], 3: DB['week3'],
+              4: DB['week4'], 5: DB['week5'], 6: DB['week6'],
+              7: DB['week7'], 8: DB['week8'], 9: DB['week9'],
+              10: DB['week10'], 11: DB['week11'], 12: DB['week12'],
+              13: DB['week13'], 14: DB['week14'], 15: DB['week15'],
+              16: DB['week16'], 17: DB['week17'], 18: DB['week18'],
+              19: DB['week19'], 20: DB['week20'], 21: DB['week21'],
+              22: DB['week22'], 23: DB['week23'], 24: DB['week24'],
+              25: DB['week25'], 26: DB['week26']}
+
+ALL_WEEKS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
+             15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26]
 # FILTER
 bad_words = ["ללא לימודים", "יום הולדת"]  # default
 FILTERED_SHEET_NAME = 'filtered'
@@ -47,9 +48,32 @@ SHEET_FILTERED = DB[FILTERED_SHEET_NAME]
 FILTER_LAST_ROW = 'H2'
 
 
-def set_bad_words(new_bad_words):
+def setup_settings(database_file_name, new_bad_words):
+    global database_file
+    database_file = database_file_name
     global bad_words
-    bad_words = new_bad_words  # on purpose rewrites the list
+    bad_words = new_bad_words
+    print(bad_words)
+
+
+def clear_events(weeks):
+    """
+    Clears all the events written to the sheet in CLEAR_RANGE.
+    :param weeks: list of week numbers to clear
+    :return: None
+    """
+    for week_num in weeks:
+        for row in SHEET_DICT[week_num][CLEAR_RANGE]:
+            for cell in row:
+                cell.value = None
+
+
+def is_special(event):
+    """
+    :param event:
+    :return:
+    """
+    pass
 
 
 def should_write(event_obj):
@@ -134,7 +158,7 @@ def choose_week(dtm_event):
     week_num = dtm_event.isocalendar()[1] + 1
     if choose_day(dtm_event) == 1:
         week_num += 1  # small error fix for sundays
-    if week_num > 26:
+    while week_num > 26:
         week_num -= 26
     if week_num == 0:
         week_num = 1
@@ -210,15 +234,12 @@ def log(how_many_events):
     print("Successfully logged to history.")
 
 
-def write_events_to_db(database_file_name, events):
+def write_events_to_db(events):
     """
     receives list of event and manages the filtering and writing.
-    :param database_file_name: name of database file
     :param events: list of events as received from google calendar
     :return: n/a
     """
-    global database_file
-    database_file = database_file_name
     events_written = 0
     i = ROW_EVENTS_START
     prev_day = 0
@@ -235,6 +256,7 @@ def write_events_to_db(database_file_name, events):
                 write_to_filtered_list(event, "OVERFLOW")
             else:
                 write_event(event, i)
+                # TODO call color?
                 i += 1
                 events_written += 1
     print("Done receiving all events.")

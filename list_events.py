@@ -8,7 +8,7 @@ from datetime import datetime
 from cal_setup import get_calendar_service
 
 # todo remove commented id
-DEFAULT_CALENDAR_ID = 'c_gjgaqdjibjd14j93eannsmps3c@group.calendar.google.com'
+# DEFAULT_CALENDAR_ID = 'c_gjgaqdjibjd14j93eannsmps3c@group.calendar.google.com'
 HOW_MANY_EVENTS = 50
 
 
