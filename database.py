@@ -1,12 +1,14 @@
 """
 aviv drori
-may 2021
+may-june 2021
 This file uses opnenpyxl to read and write to the excel
 """
 
 from openpyxl import load_workbook
 from datetime import datetime, time, date
 import config
+from openpyxl.styles import PatternFill
+from openpyxl.utils.cell import get_column_letter
 
 # EXCEL FILE CONSTANTS:
 database_file = config.get_database_file_name()  # this file needs to be in same dir
@@ -41,11 +43,30 @@ SHEET_DICT = {1: DB['week1'], 2: DB['week2'], 3: DB['week3'],
 
 ALL_WEEKS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
              15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26]
+weeks_written = []
 # FILTER
 bad_words = ["ללא לימודים", "יום הולדת"]  # default
 FILTERED_SHEET_NAME = 'filtered'
 SHEET_FILTERED = DB[FILTERED_SHEET_NAME]
 FILTER_LAST_ROW = 'H2'
+# COLORS
+COLOR_TO_CODE = {'Yellow': '00FFFF00', 'Red': '00FF0000', 'Cyan': '0000FFFF',
+                 'Purple': '007030A0', 'Green': '003DEB07', 'White': '00000000'}
+COLORS_KEYWORDS = config.read_color_file()
+COLOR_DAYS135 = '00D9E1F2'
+COLOR_DAYS24 = '00FCE4D6'
+COLUMN_DAY_DICT = {'A': 1, 'B': 1, 'C': 1, 'D': 1,
+                   'E': 2, 'F': 2, 'G': 2, 'H': 2,
+                   'I': 3, 'J': 3, 'K': 3, 'L': 3,
+                   'M': 4, 'N': 4, 'O': 4, 'P': 4,
+                   'Q': 5, 'R': 5, 'S': 5, 'T': 5,
+                   'U': 6, 'V': 6, 'W': 6, 'X': 6,
+                   'Y': 7, 'Z': 7, 'AA': 7, 'AB': 7}
+COLOR_WKND_HOME = '0092D050'
+COLOR_WKND_BASE = '00FFC000'
+WEEKEND_HOME = 'יוצאים'
+WEEKEND_BASE = 'סוגרים'
+WKND_RANGE_TO_COLOR = 'U3:AB21'
 
 
 def setup_settings(database_file_name, new_bad_words):
@@ -66,14 +87,93 @@ def clear_events(weeks):
         for row in SHEET_DICT[week_num][CLEAR_RANGE]:
             for cell in row:
                 cell.value = None
+                fill = None
+                day = COLUMN_DAY_DICT[get_column_letter(cell.column)]
+                if day in [1, 3, 5]:
+                    fill = PatternFill(start_color=COLOR_DAYS135,
+                                       end_color=COLOR_DAYS135,
+                                       fill_type='solid')
+                if day in [2, 4]:
+                    fill = PatternFill(start_color=COLOR_DAYS24,
+                                       end_color=COLOR_DAYS24,
+                                       fill_type='solid')
+                if fill is not None:
+                    cell.fill = fill
 
 
-def is_special(event):
+def check_and_color(event, i):
     """
-    :param event:
+    :param event: event obj
+    :param i: row of excel sheet to color
     :return:
     """
-    pass
+    summary = event['summary']
+    for key in COLORS_KEYWORDS:
+        keywords = COLORS_KEYWORDS[key]
+        for word in keywords:
+            if word in summary:
+                color_event(event, i, COLOR_TO_CODE[key])
+
+
+def color_event(event, i, color_code):
+    """
+    set the color of the event to color_code (RGB string)
+    :param event: event object
+    :param i: row
+    :param color_code: RGB string like '00FFFF00'
+    :return: None
+    """
+    dtm_start, dtm_end = event_to_datetime(event)
+    sheet = choose_sheet(dtm_start)
+    day = choose_day(dtm_start)
+    i_ = str(i)
+    fill = PatternFill(start_color=color_code,
+                       end_color=color_code,
+                       fill_type='solid')
+    sheet[COL_NAME_DICT[day] + i_].fill = fill
+    sheet[COL_TO_DICT[day] + i_].fill = fill
+    sheet[COL_FROM_DICT[day] + i_].fill = fill
+    sheet[COL_LEN_DICT[day] + i_].fill = fill
+
+
+def weekend_check_and_color(event):
+    """
+    checks if stay on base/go home and sets the color accordingly
+    :param event: event obj that is a full day event (filtered)
+    :return: None
+    """
+    if WEEKEND_HOME in event['summary']:
+        use = COLOR_WKND_HOME
+
+    elif WEEKEND_BASE in event['summary']:
+        use = COLOR_WKND_BASE
+    else:
+        return
+    fill = PatternFill(start_color=use,
+                       end_color=use,
+                       fill_type='solid')
+    sheet = choose_sheet(dtm_whole_day(event))
+    for row in sheet[WKND_RANGE_TO_COLOR]:
+        for cell in row:
+            if not (cell.fill.bgColor.rgb == COLOR_DAYS24 or COLOR_DAYS135):
+                cell.fill = fill
+            else:
+                if cell.value is None:
+                    cell.fill = fill
+
+
+def dtm_whole_day(event):
+    """
+    for whole day events
+    :param event: full day event obj
+    :return: the datetime of it (date is correct, random time)
+    """
+    # like 2021-05-31
+    event_str = event['start'].get('dateTime', event['start'].get('date'))
+    date_obj = date(int(event_str[0:4]), int(event_str[5:7]),
+                    int(event_str[8:10]))
+    time_obj = time(1, 1)
+    return datetime.combine(date_obj, time_obj)
 
 
 def should_write(event_obj):
@@ -86,7 +186,10 @@ def should_write(event_obj):
     start = event_obj['start'].get('dateTime', event_obj['start'].get('date'))
     dtm_start = dtm_str_to_obj(start)
     correct_sheet = choose_sheet(dtm_start)
+    # todo check weekend and write+color???
+
     if correct_sheet == 0:
+        weekend_check_and_color(event_obj)
         print("    Event not written: Filtered: whole day event")
         write_to_filtered_list(event_obj, "whole day event")
         return False
@@ -190,18 +293,22 @@ def write_event(event, i):
     if sheet == 0:
         write_to_filtered_list(event, "No matching sheet for this week")
         return
-
+    # prepare
     day = choose_day(dtm_start)
     i_ = str(i)
     week_num = choose_week(dtm_start)
-    # write from:
+    # clear
+    global weeks_written
+    if week_num not in weeks_written:
+        if not len(weeks_written) == 0:
+            clear_events([week_num])
+        weeks_written.append(week_num)
+    # write from, to, name, length
     sheet[COL_FROM_DICT[day] + i_] = str(dtm_start.time())[0:5]
-    # write to:
     sheet[COL_TO_DICT[day] + i_] = str(dtm_end.time())[0:5]
-    # write name:
     sheet[COL_NAME_DICT[day] + i_] = str(event['summary'])
-    # write length:
     sheet[COL_LEN_DICT[day] + i_] = elapsed_time
+    # output
     print("  Writing to sheet %s, wk:%d, day:%d, hr:%s, len:%d"
           % (sheet, week_num, day, str(dtm_start.time())[0:5], elapsed_time))
 
@@ -256,11 +363,11 @@ def write_events_to_db(events):
                 write_to_filtered_list(event, "OVERFLOW")
             else:
                 write_event(event, i)
-                # TODO call color?
+                check_and_color(event, i)
                 i += 1
                 events_written += 1
-    print("Done receiving all events.")
     print("--------------------------------------------------------------")
+    print("Done receiving all events.")
     log(len(events))
     save()
     print("Finished.\nGot ", len(events),

@@ -1,6 +1,6 @@
 <i> Aviv Drori, May 2021 </i><br>
 
-![Screenshot](beta_icon.png)
+![Screenshot](SETUP/beta_icon.png)
 
 Automatic calendar, with google API.<br>
 <b>What does it do?</b><br>

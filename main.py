@@ -7,8 +7,7 @@ calls for get_events and then writes to database
 # TODO - better gui instead of console?
 # TODO - edit config from program
 # TODO - gui with actions - settings, update, clear, info...
-# TODO - recognize tests and projs, and change color to yellow
-# TODO - recognize weekend stay in base/ go home
+
 """
 UPDATE: run the main program
 SETTINGS: edit filter and which calendar id to write to
@@ -18,10 +17,10 @@ INFO: user manual / dev info
 
 import list_events
 import database
-import config
+from config import *
 import googleapiclient
-
-HOW_MANY_EVENTS = 120
+import google.auth.exceptions
+import os
 
 
 def main_program():
@@ -29,11 +28,16 @@ def main_program():
         update_database()
     except googleapiclient.errors.HttpError:
         print("ERROR! The calendar ID is unrecognized.")
-        config.my_exit()
+        my_exit()
+    except google.auth.exceptions.RefreshError:
+        print("Token has expired. Restarting.")
+        # automatically delete the token file and restart program
+        os.remove(PATH_TO_TOKEN_FILE)
+        main_program()
 
 
 def update_database():
-    database_file_name, calendar_id, bad_words = config.read_setup_files()
+    database_file_name, calendar_id, bad_words = read_setup_files()
     database.setup_settings(database_file_name, bad_words)
 
     events = list_events.get_events(calendar_id, HOW_MANY_EVENTS)
@@ -42,8 +46,9 @@ def update_database():
 
 
 def tests():
-    print(config.read_setup_files())
+    print(read_setup_files())
 
 
 if __name__ == '__main__':
+    # tests()
     main_program()
