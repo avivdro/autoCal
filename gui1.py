@@ -9,16 +9,33 @@
 # todo fix whats above this
 # todo fix imports
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import QMainWindow, QApplication
+from PyQt5.QtWidgets import QMainWindow, QApplication, QPushButton, QWidget, QVBoxLayout, QLabel, QDesktopWidget
 import sys
 import config
 import database
 import main
 
 
-# TODO delete later
-def click_print(string):
-    print("CLICKED: ", string)
+class AnotherWindow(QWidget):
+    """
+    This "window" is a QWidget. If it has no parent, it
+    will appear as a free-floating window as we want.
+    """
+    def __init__(self, title, msg):
+        super().__init__()
+        self.setWindowTitle(title)
+        self.resize(350, 100)
+        layout = QVBoxLayout()
+        self.label = QLabel(msg)
+        layout.addWidget(self.label)
+        self.setLayout(layout)
+
+        ag = QDesktopWidget().availableGeometry()
+        sg = QDesktopWidget().screenGeometry()
+        widget = self.geometry()
+        x = ag.width() - widget.width() - 300
+        y = 2 * ag.height() - sg.height() - widget.height() - 200
+        self.move(x, y)
 
 
 class Ui_MainWindow(object):
@@ -32,6 +49,7 @@ class Ui_MainWindow(object):
         font.setPointSize(15)
         MainWindow.setFont(font)
         MainWindow.setAutoFillBackground(False)
+
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setBaseSize(QtCore.QSize(700, 500))
         self.centralwidget.setObjectName("centralwidget")
@@ -59,6 +77,7 @@ class Ui_MainWindow(object):
         self.btn_UpdateDatabase.setGeometry(QtCore.QRect(12, 40, 231, 71))
         self.btn_UpdateDatabase.setObjectName("pushButton_3")
         self.btn_UpdateDatabase.clicked.connect(lambda: self.click_run_program())
+        self.btn_UpdateDatabase.setStyleSheet("background-color: rgb(0, 176, 80);")
 
         self.progressBar = QtWidgets.QProgressBar(self.groupBox_2)
         self.progressBar.setGeometry(QtCore.QRect(17, 120, 661, 23))
@@ -72,7 +91,6 @@ class Ui_MainWindow(object):
         self.groupBox_3.setObjectName("groupBox_3")
 
         # WEEKS CHECKBOXES
-
         self.check1 = QtWidgets.QCheckBox(self.groupBox_3)
         self.check1.setGeometry(QtCore.QRect(30, 50, 51, 20))
         self.check1.setObjectName("check1")
@@ -165,9 +183,10 @@ class Ui_MainWindow(object):
         self.btn_ClearWeeks.setGeometry(QtCore.QRect(400, 40, 221, 51))
         self.btn_ClearWeeks.setObjectName("btn_ClearWeeks")
         self.btn_ClearWeeks.clicked.connect(lambda: self.click_clear_weeks())
-        self.label_9 = QtWidgets.QLabel(self.groupBox_3)
-        self.label_9.setGeometry(QtCore.QRect(410, 110, 181, 61))
-        self.label_9.setObjectName("label_9")
+        self.label_clear_warning = QtWidgets.QLabel(self.groupBox_3)
+        self.label_clear_warning.setGeometry(QtCore.QRect(410, 110, 181, 61))
+        self.label_clear_warning.setObjectName("label_clear_warning")
+        self.label_clear_warning.setStyleSheet("color: red")
 
         # ****************** TAB SETUP ***************************************
         self.MainTabWidget.addTab(self.Tab_Home, "")
@@ -178,6 +197,9 @@ class Ui_MainWindow(object):
         self.lineEdit.setGeometry(QtCore.QRect(150, 10, 421, 31))
         self.lineEdit.setObjectName("lineEdit")
         self.lineEdit.setText(config.get_cal_id())
+        font = self.lineEdit.font()
+        font.setPointSize(9)
+        self.lineEdit.setFont(font)
         self.label = QtWidgets.QLabel(self.Tab_Setup)
         self.label.setGeometry(QtCore.QRect(20, 10, 131, 41))
         self.label.setObjectName("label")
@@ -188,14 +210,14 @@ class Ui_MainWindow(object):
         # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         # SAVE FILTER
         self.groupBox = QtWidgets.QGroupBox(self.Tab_Setup)
-        self.groupBox.setGeometry(QtCore.QRect(9, 69, 321, 371))
+        self.groupBox.setGeometry(QtCore.QRect(100, 69, 500, 371))
         self.groupBox.setObjectName("groupBox")
         self.textEdit_filteredWords = QtWidgets.QTextEdit(self.groupBox)
-        self.textEdit_filteredWords.setGeometry(QtCore.QRect(10, 40, 301, 271))
+        self.textEdit_filteredWords.setGeometry(QtCore.QRect(10, 40, 480, 271))
         self.textEdit_filteredWords.setObjectName("textEdit")
         self.textEdit_filteredWords.setText(config.get_bad_words_str())
         self.btn_SaveFilter = QtWidgets.QPushButton(self.groupBox)
-        self.btn_SaveFilter.setGeometry(QtCore.QRect(12, 317, 301, 41))
+        self.btn_SaveFilter.setGeometry(QtCore.QRect(105, 317, 301, 41))
         self.btn_SaveFilter.setObjectName("btn_SaveFilter")
         self.btn_SaveFilter.clicked.connect(lambda: self.click_save_filter())
         self.MainTabWidget.addTab(self.Tab_Setup, "")
@@ -215,6 +237,9 @@ class Ui_MainWindow(object):
         self.textEdit_yellow.setGeometry(QtCore.QRect(30, 50, 231, 87))
         self.textEdit_yellow.setObjectName("textEdit_2")
         self.textEdit_yellow.setText(config.get_color_filter('Yellow'))
+        font = self.textEdit_yellow.font()
+        font.setPointSize(12)
+        self.textEdit_yellow.setFont(font)
         # CYAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         self.btn_save_cyan = QtWidgets.QPushButton(self.tab)
         self.btn_save_cyan.setGeometry(QtCore.QRect(270, 200, 61, 91))
@@ -228,6 +253,7 @@ class Ui_MainWindow(object):
         self.label_4 = QtWidgets.QLabel(self.tab)
         self.label_4.setGeometry(QtCore.QRect(40, 170, 111, 21))
         self.label_4.setObjectName("label_4")
+        self.textEdit_cyan.setFont(font)
         # RED %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         self.btn_save_red = QtWidgets.QPushButton(self.tab)
         self.btn_save_red.setGeometry(QtCore.QRect(600, 50, 61, 91))
@@ -238,6 +264,7 @@ class Ui_MainWindow(object):
         self.textEdit_red.setGeometry(QtCore.QRect(360, 50, 231, 87))
         self.textEdit_red.setObjectName("textEdit_red")
         self.textEdit_red.setText(config.get_color_filter('Red'))
+        self.textEdit_red.setFont(font)
         self.label_5 = QtWidgets.QLabel(self.tab)
         self.label_5.setGeometry(QtCore.QRect(370, 20, 111, 21))
         self.label_5.setObjectName("label_5")
@@ -251,6 +278,7 @@ class Ui_MainWindow(object):
         self.textEdit_purple.setGeometry(QtCore.QRect(360, 200, 231, 87))
         self.textEdit_purple.setObjectName("textEdit_purple")
         self.textEdit_purple.setText(config.get_color_filter('Purple'))
+        self.textEdit_purple.setFont(font)
         self.label_6 = QtWidgets.QLabel(self.tab)
         self.label_6.setGeometry(QtCore.QRect(370, 170, 111, 21))
         self.label_6.setObjectName("label_6")
@@ -264,6 +292,7 @@ class Ui_MainWindow(object):
         self.textEdit_white.setGeometry(QtCore.QRect(30, 350, 231, 87))
         self.textEdit_white.setObjectName("textEdit_white")
         self.textEdit_white.setText(config.get_color_filter('White'))
+        self.textEdit_white.setFont(font)
         self.label_7 = QtWidgets.QLabel(self.tab)
         self.label_7.setGeometry(QtCore.QRect(40, 320, 111, 21))
         self.label_7.setObjectName("label_7")
@@ -277,6 +306,7 @@ class Ui_MainWindow(object):
         self.textEdit_green.setGeometry(QtCore.QRect(360, 350, 231, 87))
         self.textEdit_green.setObjectName("textEdit_green")
         self.textEdit_green.setText(config.get_color_filter('Green'))
+        self.textEdit_green.setFont(font)
         self.label_8 = QtWidgets.QLabel(self.tab)
         self.label_8.setGeometry(QtCore.QRect(370, 320, 111, 21))
         self.label_8.setObjectName("label_8")
@@ -298,14 +328,25 @@ class Ui_MainWindow(object):
         self.MainTabWidget.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
+    def popup_msg(self, title, msg):
+        self.popup = AnotherWindow(title, msg)
+        self.popup.show()
+
     def click_update_color(self, words, color):
         config.set_color_filter(words, color)
 
     def click_update_calendar_id(self):
         config.set_cal_id(self.lineEdit.text())
+        self.popup_msg("Calendar ID saved", "Calendar ID has been updated.\nNow rerun the update.")
 
     def click_run_program(self):
+        self.progressBar.setValue(0)
         main.update_database()
+        x=0
+        while x < 100:
+            x += 0.001
+            self.progressBar.setValue(int(x))
+        self.popup_msg("Calendar Updated.", "The excel has been rewritten.")
 
     def click_save_filter(self):
         config.set_bad_words(self.textEdit_filteredWords.toPlainText())
@@ -315,9 +356,11 @@ class Ui_MainWindow(object):
         for i in range(1, 27):
             if self.all_checkboxes[i].isChecked():
                 weeks_to_clear.append(i)
-        print("CLEAR WEEKS", weeks_to_clear)
         if len(weeks_to_clear) != 0:
             database.clear_events(weeks_to_clear)
+            self.popup_msg("Cleared Weeks:",
+                           "Successfully cleared weeks " +
+                           ','.join(str(x) for x in weeks_to_clear))
             database.save()
 
     def click_check_all(self):
@@ -361,8 +404,8 @@ class Ui_MainWindow(object):
         self.check26.setText(_translate("MainWindow", "26"))
         self.check_all.setText(_translate("MainWindow", "Select All"))
         self.btn_ClearWeeks.setText(_translate("MainWindow", "Clear selected weeks"))
-        self.label_9.setText(_translate("MainWindow", "Warning!\n"
-                                        "This is irreversible!"))
+        self.label_clear_warning.setText(_translate("MainWindow", "Warning!\n"
+                                                    "This is irreversible!"))
         self.MainTabWidget.setTabText(self.MainTabWidget.indexOf(self.Tab_Home), _translate("MainWindow", "Home"))
         self.label.setText(_translate("MainWindow", "Calendar ID:"))
         self.btn_saveCalendarID.setText(_translate("MainWindow", "Save"))
@@ -392,6 +435,7 @@ if __name__ == "__main__":
     # default:
     import sys
     app = QtWidgets.QApplication(sys.argv)
+    app.setStyle('Fusion')
     MainWindow = QtWidgets.QMainWindow()
     ui = Ui_MainWindow()
     ui.setupUi(MainWindow)
