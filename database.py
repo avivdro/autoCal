@@ -51,8 +51,8 @@ SHEET_FILTERED = DB[FILTERED_SHEET_NAME]
 FILTER_LAST_ROW = 'H2'
 # COLORS
 COLOR_TO_CODE = {'Yellow': '00FFFF00', 'Red': '00FF0000', 'Cyan': '0000FFFF',
-                 'Purple': '007030A0', 'Green': '003DEB07', 'White': '00000000'}
-COLORS_KEYWORDS = config.read_color_file()
+                 'Purple': '007030A0', 'Green': '003DEB07', 'White': '00FFFFFF'}
+colors_keywords = config.read_color_file()
 COLOR_DAYS135 = '00D9E1F2'
 COLOR_DAYS24 = '00FCE4D6'
 COLUMN_DAY_DICT = {'A': 1, 'B': 1, 'C': 1, 'D': 1,
@@ -74,6 +74,8 @@ def setup_settings(database_file_name, new_bad_words):
     database_file = database_file_name
     global bad_words
     bad_words = new_bad_words
+    global colors_keywords
+    colors_keywords = config.read_color_file()
     print(bad_words)
 
 
@@ -108,8 +110,8 @@ def check_and_color(event, i):
     :return:
     """
     summary = event['summary']
-    for key in COLORS_KEYWORDS:
-        keywords = COLORS_KEYWORDS[key]
+    for key in colors_keywords:
+        keywords = colors_keywords[key]
         for word in keywords:
             if word in summary:
                 color_event(event, i, COLOR_TO_CODE[key])
@@ -186,7 +188,6 @@ def should_write(event_obj):
     start = event_obj['start'].get('dateTime', event_obj['start'].get('date'))
     dtm_start = dtm_str_to_obj(start)
     correct_sheet = choose_sheet(dtm_start)
-    # todo check weekend and write+color???
 
     if correct_sheet == 0:
         weekend_check_and_color(event_obj)

@@ -4,17 +4,6 @@ main code
 calls for get_events and then writes to database
 """
 
-# TODO - better gui instead of console?
-# TODO - edit config from program
-# TODO - gui with actions - settings, update, clear, info...
-
-"""
-UPDATE: run the main program
-SETTINGS: edit filter and which calendar id to write to
-CLEAR: clear all the luz
-INFO: user manual / dev info
-"""
-
 import list_events
 import database
 from config import *
@@ -37,12 +26,13 @@ def main_program():
 
 
 def update_database():
+    print("UPDATE DATABASE", read_setup_files())
     database_file_name, calendar_id, bad_words = read_setup_files()
     database.setup_settings(database_file_name, bad_words)
 
     events = list_events.get_events(calendar_id, HOW_MANY_EVENTS)
     database.write_events_to_db(events)
-    input("Press enter to exit.")  # enter then close program.
+    # input("Press enter to exit.")  # enter then close program.
 
 
 def tests():
